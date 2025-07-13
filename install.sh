@@ -4,7 +4,7 @@ echo "Creating udev rule..."
 
 # 1038 is, from what I can tell, the SteelSeries vendor ID
 sudo tee /etc/udev/rules.d/99-linuxmix.rules > /dev/null <<EOF
-KERNEL=="hidraw*", ATTRS{idVendor}=="1038", MODE="0644"
+KERNEL=="hidraw*", ATTRS{idVendor}=="1038", MODE="0644", GROUP=$USER
 EOF
 
 echo "Reloading udev rules..."
