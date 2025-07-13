@@ -1,0 +1,43 @@
+name: Rust
+
+on:
+  push:
+    branches: [ "main" ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ "main" ]
+    tags:
+      - 'v*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build
+      run: cargo build --release
+    - name: Tar files
+      run: tar -cvzf linuxmix.tar.gz -C install.sh uninstall.sh target/release/linuxmix
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        if-no-files-found: error
+        path: ./linuxmix.tar.gz
+        name: linuxmix.tar.gz
+    - name: Bump release version
+      id: tag_version
+      uses: mathieudutour/github-tag-action@v6.2
+      with:
+        github_token: ${{secrets.GITHUB_TOKEN}}
+        fetch_all_tags: true
+    - name: Create release
+      uses: ncipollo/release-action@v1
+      with:
+        tag: ${{ steps.tag_version.outputs.new_tag }}
+        artifacts: ./linuxmix.tar.gz
