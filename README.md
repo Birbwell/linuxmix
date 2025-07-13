@@ -16,6 +16,8 @@ A simple interface service to interact with SteelSeries ChatMix dials on linux
     Run `cargo build --release` (must have cargo/rust installed)
     Run `./install.sh`
 
+When you're done installing, make sure your main output sink is set to be `Game`.
+
 ### How to Uninstall
 Run `./uninstall.sh`
 
