@@ -23,7 +23,7 @@ jobs:
     - name: Build
       run: cargo build --release
     - name: Tar files
-      run: tar -cvzf linuxmix.tar.gz -C install.sh uninstall.sh target/release/linuxmix
+      run: tar -cvzf linuxmix.tar.gz install.sh uninstall.sh target/release/linuxmix
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
