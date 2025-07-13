@@ -17,7 +17,7 @@ enum State {
 
 fn main() {
     let mut stream = if let Ok(device) = std::fs::read_to_string("device.conf") {
-        OpenOptions::new().read(true).open(device).unwrap()
+        OpenOptions::new().read(true).open(format!("/dev/{device}")).unwrap()
     } else {
         determine_device()
     };
