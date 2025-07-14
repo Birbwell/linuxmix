@@ -2,6 +2,8 @@ use std::{
     fs::{File, OpenOptions},
     io::Read,
     process::{Command, Stdio},
+    time,
+    thread,
 };
 
 const CHATMIX_CODE: u8 = 69;
@@ -16,10 +18,23 @@ enum State {
 }
 
 fn main() {
-    let mut stream = if let Ok(device) = std::fs::read_to_string("device.conf") {
-        OpenOptions::new().read(true).open(format!("/dev/{device}")).unwrap()
-    } else {
-        determine_device()
+    let mut stream = loop {
+        let opt_stream = if let Ok(device) = std::fs::read_to_string("device.conf") {
+            OpenOptions::new()
+                .read(true)
+                .open(format!("/dev/{device}"))
+                .ok()
+                .or(determine_device())
+        } else {
+            determine_device()
+        };
+
+        if let Some(_stream) = opt_stream {
+            break _stream;
+        }
+
+        eprintln!("Did not receive ChatMix dial signal. Retrying...");
+        thread::sleep(time::Duration::from_secs(2));
     };
 
     let mut state = State::Waiting;
@@ -53,8 +68,11 @@ fn main() {
     }
 }
 
-fn determine_device() -> File {
-    println!("Mess around with the chatmix dial so the service can determine the correct file to read from!");
+fn determine_device() -> Option<File> {
+    // Putting this here so its viewable with systemctl status
+    println!(
+        "Mess around with the chatmix dial so the service can determine the correct file to read from!"
+    );
 
     let mut devices = std::fs::read_dir("/dev/").unwrap().filter_map(|f| {
         let t = f.unwrap().file_name().into_string().unwrap();
@@ -69,20 +87,27 @@ fn determine_device() -> File {
         }
     });
 
+    let now = time::Instant::now();
+    let timeout = time::Duration::from_secs(10);
+
     let (determined_device, hidraw_name) = 'device_loop: loop {
-        for (mut dev, name) in &mut devices {
-            let mut buf = [0u8; 4];
-            if let Ok(4) = dev.read(&mut buf) {
-                if let [CHATMIX_CODE, _, _, 0] = buf {
-                    break 'device_loop (dev, name);
+        if now.elapsed() < timeout {
+            for (mut dev, name) in &mut devices {
+                let mut buf = [0u8; 4];
+                if let Ok(4) = dev.read(&mut buf) {
+                    if let [CHATMIX_CODE, _, _, 0] = buf {
+                        break 'device_loop (dev, name);
+                    }
                 }
             }
+        } else {
+            return None;
         }
     };
 
     std::fs::write("device.conf", hidraw_name).unwrap();
 
-    determined_device
+    Some(determined_device)
 }
 
 fn configure_device() {
@@ -98,7 +123,7 @@ fn configure_device() {
                 break def_sink_out;
             }
 
-            std::thread::sleep(std::time::Duration::from_secs(1));
+            thread::sleep(time::Duration::from_secs(1));
         };
 
         get_device_id(&String::from_utf8(default_sink_name).unwrap().trim())
