@@ -16,8 +16,7 @@ I'm sure there are some other alternatives out there. The two I had seen prior t
     ```bash
     mkdir linuxmix/ && tar -xvzf linuxmix.tar.gz -C linuxmix/
     cd linuxmix
-    chmod +x install.sh
-    ./install.sh
+    bash install.sh
     ```
 
 2) By building from source
@@ -26,8 +25,7 @@ I'm sure there are some other alternatives out there. The two I had seen prior t
    git clone https://github.com/Birbwell/linuxmix.git
    cd linuxmix
    cargo build --release
-   chmod +x install.sh
-   ./install.sh
+   bash install.sh
    ```
 
 When you're done installing, make sure your main output sink is set to be `Game`.
