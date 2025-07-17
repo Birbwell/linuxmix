@@ -31,7 +31,7 @@ I'm sure there are some other alternatives out there. The two I had seen prior t
 When you're done installing, make sure your main output sink is set to be `Game`.
 
 ### How to Uninstall
-Run `./uninstall.sh`
+Run `bash uninstall.sh`
 
 I am **VERY** new to making an open-source project, so any tips/contributions/recommendations are welcome!
 
