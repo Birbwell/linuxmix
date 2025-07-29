@@ -17,6 +17,7 @@ cp target/release/linuxmix ~/.local/bin/linuxmix
 
 echo "Generating service file /home/$USER/.config/systemd/user/linuxmix.service"
 
+mkdir -p ~/.config/systemd/user/
 tee ~/.config/systemd/user/linuxmix.service > /dev/null <<EOF
 [Unit]
 Description=Service to split SteelSeries headphone audio tracks programmatically
