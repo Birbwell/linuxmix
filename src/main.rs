@@ -200,6 +200,11 @@ fn process_bytes([code, game_vol, chat_vol, _]: [u8; 4]) -> bool {
         }
         _ => {} // Other opcodes are not implemented, but we dont want this program to crash
     }
+    Command::new("pactl")
+        .arg("set-default-sink")
+        .arg("Game")
+        .spawn()
+        .unwrap();
     return false;
 }
 
@@ -294,10 +299,4 @@ fn dedup_sinks() {
             }
         }
     }
-
-    Command::new("pactl")
-        .arg("set-default-sink")
-        .arg("Game")
-        .spawn()
-        .unwrap();
 }
