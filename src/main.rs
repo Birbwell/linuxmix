@@ -16,7 +16,20 @@ enum State {
     Waiting,
 }
 
+#[derive(PartialEq, Eq)]
+enum StreamState {
+    Continue,
+    Invalid,
+    Break,
+}
+
 fn main() {
+    let read_bytes = |stream: &mut File, uninitiated: bool| {
+        let mut bytes = [0u8; 4];
+        stream.read_exact(&mut bytes).unwrap();
+        process_bytes(bytes, uninitiated)
+    };
+
     let mut stream = loop {
         let opt_stream = if let Ok(device) = std::fs::read_to_string("device.conf") {
             OpenOptions::new()
@@ -32,8 +45,19 @@ fn main() {
             break _stream;
         }
 
-        eprintln!("Did not receive ChatMix dial signal. Retrying...");
-        thread::sleep(time::Duration::from_secs(2));
+        let Some(mut _stream) = opt_stream else {
+            eprintln!("Did not receive ChatMix dial signal. Retrying...");
+            thread::sleep(time::Duration::from_secs(2));
+            continue;
+        };
+
+        // Confirm whether or not the file read is valid
+        // This will confirm if it is reading the correct file, as sometimes one of the three SteelSeries HIDRAW devices
+        // can transmit data, leading to the service continuing without properly using the correct HIDRAW device
+        let stat = read_bytes(&mut _stream, true);
+        if stat != StreamState::Invalid {
+            break _stream;
+        }
     };
 
     let mut state = State::Waiting;
@@ -42,9 +66,8 @@ fn main() {
         match state {
             State::Running => {
                 loop {
-                    let mut bytes = [0u8; 4];
-                    stream.read_exact(&mut bytes).unwrap();
-                    if process_bytes(bytes) {
+                    let stat = read_bytes(&mut stream, false);
+                    if stat == StreamState::Break {
                         break;
                     }
                 }
@@ -173,7 +196,7 @@ fn configure_device() {
         .unwrap();
 }
 
-fn process_bytes([code, game_vol, chat_vol, _]: [u8; 4]) -> bool {
+fn process_bytes([code, game_vol, chat_vol, _]: [u8; 4], uninitiated: bool) -> StreamState {
     let set_volume = |channel: &str, vol: u8| {
         Command::new("pactl")
             .arg("set-sink-volume")
@@ -191,9 +214,12 @@ fn process_bytes([code, game_vol, chat_vol, _]: [u8; 4]) -> bool {
         }
         HEADSET_POWER if game_vol == 2 => {
             //power_off
-            return true;
+            return StreamState::Break;
         }
-        _ => {} // Other opcodes are not implemented, but we dont want this program to crash
+        _ if uninitiated => {
+            return StreamState::Invalid;
+        }
+        _ => {} // Do nothing if otherwise
     }
 
     Command::new("pactl")
@@ -201,7 +227,7 @@ fn process_bytes([code, game_vol, chat_vol, _]: [u8; 4]) -> bool {
         .arg("Game")
         .spawn()
         .unwrap();
-    return false;
+    return StreamState::Continue;
 }
 
 fn get_device_id(device_name: &str) -> u32 {
