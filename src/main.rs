@@ -2,8 +2,7 @@ use std::{
     fs::{File, OpenOptions},
     io::Read,
     process::{Command, Stdio},
-    time,
-    thread,
+    thread, time,
 };
 
 const CHATMIX_CODE: u8 = 69;
@@ -111,6 +110,9 @@ fn determine_device() -> Option<File> {
 }
 
 fn configure_device() {
+    // Prevent creating duplicate sinks, which would otherwise happen if the service is abruptly restarted
+    cleanup_sinks();
+
     let default_sink = {
         let default_sink_name = loop {
             let def_sink_out = Command::new("pactl")
@@ -172,26 +174,20 @@ fn configure_device() {
 }
 
 fn process_bytes([code, game_vol, chat_vol, _]: [u8; 4]) -> bool {
+    let set_volume = |channel: &str, vol: u8| {
+        Command::new("pactl")
+            .arg("set-sink-volume")
+            .arg(format!("{}", channel))
+            .arg(format!("{}%", vol))
+            .spawn()
+            .unwrap();
+    };
+
     match code {
         // 69 is for volume wheel values
         CHATMIX_CODE => {
-            Command::new("pactl")
-                .arg("set-sink-volume")
-                .arg(format!("{}", GAME))
-                .arg(format!("{}%", game_vol))
-                .spawn()
-                .unwrap()
-                .wait()
-                .unwrap();
-
-            Command::new("pactl")
-                .arg("set-sink-volume")
-                .arg(CHAT)
-                .arg(format!("{}%", chat_vol))
-                .spawn()
-                .unwrap()
-                .wait()
-                .unwrap();
+            set_volume(GAME, game_vol);
+            set_volume(CHAT, chat_vol)
         }
         HEADSET_POWER if game_vol == 2 => {
             //power_off
@@ -199,6 +195,12 @@ fn process_bytes([code, game_vol, chat_vol, _]: [u8; 4]) -> bool {
         }
         _ => {} // Other opcodes are not implemented, but we dont want this program to crash
     }
+
+    Command::new("pactl")
+        .arg("set-default-sink")
+        .arg("Game")
+        .spawn()
+        .unwrap();
     return false;
 }
 
@@ -237,19 +239,26 @@ fn cleanup_sinks() {
         .wait()
         .unwrap();
 
-    Command::new("pw-cli")
-        .arg("destroy")
-        .arg(GAME)
-        .spawn()
-        .unwrap()
-        .wait()
-        .unwrap();
+    let destroy_sinks = |name: &str| {
+        loop {
+            let stat = Command::new("pw-cli")
+                .arg("destroy")
+                .arg(name)
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()
+                .unwrap()
+                .wait_with_output()
+                .unwrap();
 
-    Command::new("pw-cli")
-        .arg("destroy")
-        .arg(CHAT)
-        .spawn()
-        .unwrap()
-        .wait()
-        .unwrap();
+            // Prints to stderr whenever an error occurs, such as there being no sink by the given name
+            // Despite printing to stderr, _the exit status is still 0_
+            if stat.stderr.len() > 0 {
+                break;
+            }
+        }
+    };
+
+    destroy_sinks(GAME);
+    destroy_sinks(CHAT);
 }
