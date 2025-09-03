@@ -2,8 +2,7 @@ use std::{
     fs::{File, OpenOptions},
     io::Read,
     process::{Command, Stdio},
-    time,
-    thread,
+    thread, time,
 };
 
 const CHATMIX_CODE: u8 = 69;
@@ -169,6 +168,8 @@ fn configure_device() {
         .unwrap()
         .wait()
         .unwrap();
+
+    dedup_sinks();
 }
 
 fn process_bytes([code, game_vol, chat_vol, _]: [u8; 4]) -> bool {
@@ -251,5 +252,52 @@ fn cleanup_sinks() {
         .spawn()
         .unwrap()
         .wait()
+        .unwrap();
+}
+
+fn dedup_sinks() {
+    let list_nodes = Command::new("pw-cli")
+        .arg("list-objects")
+        .arg("Node")
+        .spawn()
+        .unwrap()
+        .wait_with_output()
+        .unwrap()
+        .stdout
+        .iter()
+        .map(|c| *c as char)
+        .collect::<String>();
+
+    let remove_sink = |name: &str| {
+        Command::new("pw-cli")
+            .arg("destroy")
+            .arg(name)
+            .spawn()
+            .unwrap();
+    };
+
+    let mut first_game = false;
+    let mut first_chat = false;
+    for line in list_nodes.lines() {
+        if line.trim() == "node.name = \"Game\"" {
+            if first_game {
+                remove_sink("Game");
+            } else {
+                first_game = true;
+            }
+        }
+        if line.trim() == "node.name = \"Chat\"" {
+            if first_chat {
+                remove_sink("Chat");
+            } else {
+                first_chat = true;
+            }
+        }
+    }
+
+    Command::new("pactl")
+        .arg("set-default-sink")
+        .arg("Game")
+        .spawn()
         .unwrap();
 }
