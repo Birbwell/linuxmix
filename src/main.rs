@@ -174,7 +174,7 @@ fn configure_device() {
         .wait()
         .unwrap();
 
-    // Combine them, then loop it to the hadphones
+    // Combine them, then loop it to the headphones
     Command::new("pactl")
         .arg("load-module")
         .arg("module-loopback")

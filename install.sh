@@ -1,11 +1,34 @@
 #!/bin/bash
 
+ss_vendor_id=1038
+
+echo "Checking for binary..."
+if [ ! -e "./target/release/linuxmix" ] && command -v cargo &> /dev/null; then      # Check if binary is present and if cargo is installed
+    cargo build --release
+elif [ ! -e "Cargo.toml" ]; then                                                    # Check if this is a rust project
+    echo "Binary is not present, and this is not a rust project. Exiting."
+    exit 1
+elif [ ! -e "./target/release/linuxmix" ] && ! command -v cargo &> /dev/null; then  # Check if cargo is not installed
+    echo "Binary is not present, and cargo is not installed. Exiting."
+    exit 1
+fi
+
 echo "Creating udev rule..."
 
 # 1038 is, from what I can tell, the SteelSeries vendor ID
 sudo tee /etc/udev/rules.d/99-linuxmix.rules > /dev/null <<EOF
-KERNEL=="hidraw*", ATTRS{idVendor}=="1038", MODE="0640", GROUP="$USER"
+KERNEL=="hidraw*", ATTRS{idVendor}=="$ss_vendor_id", MODE="0640", GROUP="$USER"
 EOF
+
+if ! command -v pactl &> /dev/null; then
+    echo "PulseAudio not installed"
+    exit 1
+fi
+
+if ! command -v pw-cli &> /dev/null; then
+    echo "PipeWire not installed"
+    exit 1
+fi
 
 echo "Reloading udev rules..."
 sudo udevadm control --reload-rules
