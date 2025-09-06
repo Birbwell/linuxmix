@@ -31,19 +31,17 @@ fn main() {
     };
 
     let mut stream = loop {
+        let mut dev_name = None;
         let opt_stream = if let Ok(device) = std::fs::read_to_string("device.conf") {
+            dev_name = Some(device.clone());
             OpenOptions::new()
                 .read(true)
                 .open(format!("/dev/{device}"))
                 .ok()
-                .or(determine_device())
+                .or(determine_device(&mut dev_name))
         } else {
-            determine_device()
+            determine_device(&mut dev_name)
         };
-
-        if let Some(_stream) = opt_stream {
-            break _stream;
-        }
 
         let Some(mut _stream) = opt_stream else {
             eprintln!("Did not receive ChatMix dial signal. Retrying...");
@@ -56,6 +54,7 @@ fn main() {
         // can transmit data, leading to the service continuing without properly using the correct HIDRAW device
         let stat = read_bytes(&mut _stream, true);
         if stat != StreamState::Invalid {
+            eprintln!("Reading from device {dev_name:?}");
             break _stream;
         }
     };
@@ -90,7 +89,7 @@ fn main() {
     }
 }
 
-fn determine_device() -> Option<File> {
+fn determine_device(dev_name: &mut Option<String>) -> Option<File> {
     // Putting this here so its viewable with systemctl status
     println!(
         "Mess around with the chatmix dial so the service can determine the correct file to read from!"
@@ -127,8 +126,9 @@ fn determine_device() -> Option<File> {
         }
     };
 
-    std::fs::write("device.conf", hidraw_name).unwrap();
+    std::fs::write("device.conf", hidraw_name.clone()).unwrap();
 
+    *dev_name = Some(hidraw_name);
     Some(determined_device)
 }
 
