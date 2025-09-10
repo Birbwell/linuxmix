@@ -184,7 +184,7 @@ fn cleanup_sinks() {
     Command::new("pactl")
         .arg("unload-module")
         .arg("module-loopback")
-        .stdout(Stdio::null())
+        .stderr(Stdio::null())
         .spawn()
         .unwrap()
         .wait()
