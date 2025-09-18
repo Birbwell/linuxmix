@@ -1,14 +1,18 @@
 #!/bin/bash
 
+repo_url=https://github.com/Birbwell/linuxmix.git
 ss_vendor_id=1038
+set -e
 
 echo "Checking for binary..."
-if [ ! -e "./target/release/linuxmix" ] && command -v cargo &> /dev/null; then      # Check if binary is present and if cargo is installed
+if [ ! -e "target/release/linuxmix" ] && [ -f "Cargo.toml" ] && (command -v cargo &> /dev/null); then      # Check if binary is present and if cargo is installed
     cargo build --release
-elif [ ! -e "Cargo.toml" ]; then                                                    # Check if this is a rust project
-    echo "Binary is not present, and this is not a rust project. Exiting."
-    exit 1
-elif [ ! -e "./target/release/linuxmix" ] && ! command -v cargo &> /dev/null; then  # Check if cargo is not installed
+elif (command -v git &> /dev/null) && (command -v cargo &> /dev/null); then                                # Check if git and cargo is installed
+    echo "Cloning repo..."
+    git clone $repo_url
+    cd linuxmix
+    cargo build --release
+elif [! -e "target/release/linuxmix" ]; then                                                               # If the script cannot proceed, exit
     echo "Binary is not present, and cargo is not installed. Exiting."
     exit 1
 fi
@@ -48,7 +52,6 @@ Description=Service to split SteelSeries headphone audio tracks programmatically
 [Service]
 ExecStart=/home/$USER/.local/bin/linuxmix
 Restart=always
-WorkingDirectory=/home/$USER/.config/linuxmix
 
 [Install]
 WantedBy=default.target
@@ -58,6 +61,9 @@ echo "Starting service..."
 systemctl --user daemon-reload
 systemctl --user enable linuxmix
 systemctl --user start linuxmix
+
+echo "Cleaning up..."
+rm -rf linuxmix
 
 echo "Done!"
 echo "Mess with the ChatMix dial to ensure the service works"
