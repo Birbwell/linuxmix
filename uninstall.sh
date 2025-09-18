@@ -1,7 +1,5 @@
 #!/bin/bash
 
-linuxmix_user_name=linuxmix
-
 echo "Stopping service..."
 systemctl --user stop linuxmix
 
@@ -23,6 +21,5 @@ rm ~/.local/bin/linuxmix
 
 echo "Removing service file..."
 rm ~/.config/systemd/user/linuxmix.service
-rm -r ~/.config/linuxmix
 
 systemctl --user daemon-reload

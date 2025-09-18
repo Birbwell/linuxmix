@@ -5,24 +5,17 @@ ss_vendor_id=1038
 set -e
 
 echo "Checking for binary..."
-if [ ! -e "target/release/linuxmix" ] && [ -f "Cargo.toml" ] && (command -v cargo &> /dev/null); then      # Check if binary is present and if cargo is installed
+if [ ! -f "target/release/linuxmix" ] && [ -f "Cargo.toml" ] && (command -v cargo &> /dev/null); then               # Check if binary is present and if cargo is installed
     cargo build --release
-elif (command -v git &> /dev/null) && (command -v cargo &> /dev/null); then                                # Check if git and cargo is installed
+elif [ ! -f "target/release/linuxmix" ] && (command -v git &> /dev/null) && (command -v cargo &> /dev/null); then   # Check if git and cargo is installed, clone and compile if they both are
     echo "Cloning repo..."
-    git clone $repo_url
-    cd linuxmix
+    git clone $repo_url /tmp/linuxmix
+    cd /tmp/linuxmix
     cargo build --release
-elif [! -e "target/release/linuxmix" ]; then                                                               # If the script cannot proceed, exit
-    echo "Binary is not present, and cargo is not installed. Exiting."
+elif [ ! -f "target/release/linuxmix" ]; then                                                                       # If the binary cannot be found or compiled proceed, exit
+    echo "Binary is not present, and cargo and/or git is not installed. Exiting."
     exit 1
 fi
-
-echo "Creating udev rule..."
-
-# 1038 is, from what I can tell, the SteelSeries vendor ID
-sudo tee /etc/udev/rules.d/99-linuxmix.rules > /dev/null <<EOF
-KERNEL=="hidraw*", ATTRS{idVendor}=="$ss_vendor_id", MODE="0640", GROUP="audio"
-EOF
 
 if ! command -v pactl &> /dev/null; then
     echo "PulseAudio not installed"
@@ -33,6 +26,13 @@ if ! command -v pw-cli &> /dev/null; then
     echo "PipeWire not installed"
     exit 1
 fi
+
+echo "Creating udev rule..."
+
+# 1038 is, from what I can tell, the SteelSeries vendor ID
+sudo tee /etc/udev/rules.d/99-linuxmix.rules > /dev/null <<EOF
+KERNEL=="hidraw*", ATTRS{idVendor}=="$ss_vendor_id", MODE="0640", GROUP="audio"
+EOF
 
 echo "Reloading udev rules..."
 sudo udevadm control --reload-rules
@@ -63,7 +63,7 @@ systemctl --user enable linuxmix
 systemctl --user start linuxmix
 
 echo "Cleaning up..."
-rm -rf linuxmix
+rm -rf /tmp/linuxmix
 
 echo "Done!"
 echo "Mess with the ChatMix dial to ensure the service works"
