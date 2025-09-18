@@ -1,5 +1,7 @@
 #!/bin/bash
 
+linuxmix_user_name=linuxmix
+
 echo "Stopping service..."
 systemctl --user stop linuxmix
 
@@ -8,6 +10,7 @@ pactl unload-module module-loopback
 pw-cli destroy Game
 pw-cli destroy Chat
 
+# Removing linuxmix udev rules and reloading udevadm
 echo "Removing udev rule..."
 sudo rm /etc/udev/rules.d/99-linuxmix.rules
 
