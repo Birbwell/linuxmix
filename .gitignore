@@ -1,2 +1,4 @@
 target/**
 device.conf
+cleanup.sh
+names.sh

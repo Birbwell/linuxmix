@@ -17,7 +17,7 @@ echo "Creating udev rule..."
 
 # 1038 is, from what I can tell, the SteelSeries vendor ID
 sudo tee /etc/udev/rules.d/99-linuxmix.rules > /dev/null <<EOF
-KERNEL=="hidraw*", ATTRS{idVendor}=="$ss_vendor_id", MODE="0640", GROUP="$USER"
+KERNEL=="hidraw*", ATTRS{idVendor}=="$ss_vendor_id", MODE="0640", GROUP="audio"
 EOF
 
 if ! command -v pactl &> /dev/null; then
@@ -53,9 +53,6 @@ WorkingDirectory=/home/$USER/.config/linuxmix
 [Install]
 WantedBy=default.target
 EOF
-
-echo "Generating service configuration directory /home/$USER/.config/linuxmix/"
-mkdir ~/.config/linuxmix
 
 echo "Starting service..."
 systemctl --user daemon-reload
