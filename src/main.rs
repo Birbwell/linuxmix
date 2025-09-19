@@ -6,23 +6,31 @@ use std::{
     thread, time,
 };
 
-const CHATMIX_CODE: u8 = 69;        // Opcode for chatmix signal
-const HEADSET_POWER: u8 = 185;      // Opcode for power
+const CHATMIX_CODE: u8 = 69; // Opcode for chatmix signal
+const HEADSET_POWER: u8 = 185; // Opcode for power
 const GAME: &str = "Game";
 const CHAT: &str = "Chat";
 
 fn main() -> ! {
-    let devices = get_devices();
     let mut threads = vec![];
-    for device in devices {
-        threads.push(thread::spawn(|| read_device(device)));
-    }
 
-    while threads.iter().any(|f| !f.is_finished()) {
-        thread::sleep(time::Duration::from_millis(100));
-    }
+    loop {
+        let devices = get_devices();
+        if devices.len() == 0 {
+            continue;
+        }
 
-    panic!("All threads exited unexpectedly");
+        for device in devices {
+            threads.push(thread::spawn(|| read_device(device)));
+        }
+
+        while threads.iter().any(|f| !f.is_finished()) {
+            thread::sleep(time::Duration::from_millis(100));
+        }
+
+        eprintln!("Device could not be detected. Retrying...");
+        std::thread::sleep(time::Duration::from_millis(100));
+    }
 }
 
 fn get_devices() -> Vec<File> {
