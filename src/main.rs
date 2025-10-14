@@ -145,6 +145,8 @@ fn process_bytes([code, game_vol, chat_vol, _]: [u8; 4]) {
             .arg(format!("{}", channel))
             .arg(format!("{}%", vol))
             .spawn()
+            .unwrap()
+            .wait()
             .unwrap();
     };
 
@@ -185,6 +187,8 @@ fn process_bytes([code, game_vol, chat_vol, _]: [u8; 4]) {
         .arg("set-default-sink")
         .arg("Game")
         .spawn()
+        .unwrap()
+        .wait()
         .unwrap();
 }
 
