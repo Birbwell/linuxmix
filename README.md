@@ -1,3 +1,7 @@
+# NOTE
+
+I am no longer maintaining this service on github. If you would like the latest version of it, please go to https://codeberg.org/Birbwell/linuxmix
+
 # linuxmix
 A simple interface service to interact with SteelSeries ChatMix dials on linux
 
